@@ -25,16 +25,48 @@ class Sprite(pygame.sprite.Sprite):
 class Gun(Sprite):
     def __init__(self, image, location):
         Sprite.__init__(self, image, location)
-    def shoot(self,bullet_image, window):
-        bullet = Sprite(bullet_image,(self.rect[2], self.rect[3]))
-        bullet.scale(3,3)
-        if bullet.rect[1] - bullet.rect[3] >=0:
-            bullet.render(window)
-            bullet.move(0,-10)
 
+class Bullet(Sprite):
+    def __init__(self, image, location, rect):
+        Sprite.__init__(self, image, location)
+        self.is_firing = False
+        self.gunrect = rect
+        self.scale(2,2)
+        self.moveback()
+        self.shot = False
+    def fire(self):
+        self.is_firing = True
+        if self.is_firing:
+            if self.rect[1] - self.rect[3] >= 0:
+                self.move(0,-10)
+            else:
+                self.is_firing = False
+            if self.rect[1] - self.rect[3] <= 0:
+                self.is_firing = False
+                return False
+        return True
+    def set_gunrect(self, rect):
+        self.gunrect = rect
+        self.moveback()
+    def moveback(self):
+        self.rect[0] = self.gunrect[0] + 17
+        self.rect[1] = self.gunrect[1]
+class Flash(Sprite):
+    def __init__(self, image, location):
+        Sprite.__init__(self, image, location)
+    def show():
+        pass
 class Enemy(Sprite):
     def __init__(self, image, location):
         Sprite.__init__(self, image, location)
+        self.hit = False
+    def render(self, win):
+        if self.hit == False: 
+            win.blit(self.image, self.rect)
+    def on_hit(self, bullet):
+        bullet.is_firing = False
+    def set_hit(self,was_hit):
+        self.hit = was_hit
 
 pygame.init()
 window = pygame.display.set_mode((640,480))
@@ -48,7 +80,10 @@ wall_hit_right = False
 player.rect[0] = 290
 player.rect[1] = 400
 enemies = pygame.sprite.Group()
+e1 = Enemy("res/enemy.png", [100,100])
+enemies.add(e1)
 shooting = False
+bullet = Bullet("res/bullet.png", [0,0], player.rect) 
 
 while running:
     for i in pygame.event.get():
@@ -59,21 +94,31 @@ while running:
         wall_hit_left = True
     else: 
         wall_hit_left = False
-    if player.rect[0] + player.rect[2] >= 610:
+    if player.rect[0] + player.rect[2]:
         wall_hit_right = True
     else:
         wall_hit_right = False
     if wall_hit_left == False: 
         if keys[pygame.K_a] or keys[pygame.K_LEFT]: 
             player.move(-4, 0)
-    if wall_hit_right == False:
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: 
-            player.move(4,0)
+            bullet.set_gunrect(player.rect)
+    #if wall_hit_right == False:
+    if keys[pygame.K_d] or keys[pygame.K_RIGHT]: 
+        player.move(4,0)
+        bullet.set_gunrect(player.rect)
     if keys[pygame.K_x]:
         shooting = True
-    if shooting == True:
-        player.shoot("res/bullet.png", window)
+    if shooting:
+        shooting = bullet.fire()
+    elif bullet.rect[1] - bullet.rect[3] <= e1.rect[1] + e1.rect[3] and bullet.rect[0] - bullet.rect[2] <= e1.rect[0] + e1.rect[2]:
+        e1.set_hit(True)
+        e1.on_hit(bullet)
+        bullet.moveback()
+    else:
+        bullet.moveback()
     window.fill("#222034")
     player.render(window)
+    bullet.render(window)
+    e1.render(window)
     pygame.display.update()
-    dt = clock.tick(60)/1000
+    clock.tick(60)/1000
