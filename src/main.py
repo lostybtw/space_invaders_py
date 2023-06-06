@@ -5,8 +5,8 @@ class Sprite(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(image)
         self.rect = self.image.get_rect()
-        self.rect.top = location[0]
-        self.rect.left = location[1]
+        self.rect.left = location[0]
+        self.rect.top = location[1]
         self.size = self.image.get_size()
     
     def render(self,win):
@@ -54,8 +54,9 @@ class Bullet(Sprite):
 class Flash(Sprite):
     def __init__(self, image, location):
         Sprite.__init__(self, image, location)
-    def show():
-        pass
+    def show(self, is_shooting, win):
+        if is_shooting:
+           self.render(window)
 class Enemy(Sprite):
     def __init__(self, image, location):
         Sprite.__init__(self, image, location)
@@ -72,6 +73,7 @@ pygame.init()
 window = pygame.display.set_mode((640,480))
 clock = pygame.time.Clock()
 running = True
+menuing = True
 dt = 0
 player = Gun("res/gun.png", [100,100])
 player.scale(2,2)
@@ -82,10 +84,26 @@ player.rect[1] = 400
 enemies = pygame.sprite.Group()
 e1 = Enemy("res/enemy.png", [100,100])
 enemies.add(e1)
+e2 = Enemy("res/enemy.png", [200,100])
+enemies.add(e2)
+e3 = Enemy("res/enemy.png", [300,100])
+enemies.add(e3)
+
 shooting = False
-bullet = Bullet("res/bullet.png", [0,0], player.rect) 
+bullet = Bullet("res/bullet.png", [0,0], player.rect)
+flash = Flash("res/flash.png" , [307, 400])
+flash.scale(0.5, 0.5)
+
+menu_back = Sprite("res/menu.png", [0,0])
+menu_back.scale(10,10)
+
 
 while running:
+    if menuing:
+        key = pygame.key.get_pressed()
+        if key[pygame.K_e]:
+            menuing = False
+            running = True
     for i in pygame.event.get():
         if i.type == pygame.QUIT:
             running = False
@@ -108,17 +126,22 @@ while running:
         bullet.set_gunrect(player.rect)
     if keys[pygame.K_x]:
         shooting = True
-    if shooting:
-        shooting = bullet.fire()
-    elif bullet.rect[1] - bullet.rect[3] <= e1.rect[1] + e1.rect[3] and bullet.rect[0] - bullet.rect[2] <= e1.rect[0] + e1.rect[2]:
-        e1.set_hit(True)
-        e1.on_hit(bullet)
-        bullet.moveback()
-    else:
-        bullet.moveback()
+    for i in enemies:
+        if shooting:
+            shooting = bullet.fire()
+            flash.show(shooting, window)
+        elif bullet.rect[1] - bullet.rect[3] <= i.rect[1] + i.rect[3] and bullet.rect[0] - bullet.rect[2] + 2 <= i.rect[0] + i.rect[2] and bullet.rect[0] - bullet.rect[2] + 50 >= i.rect[0] + i.rect[2]:
+            i.set_hit(True)
+            i.on_hit(bullet)
+            bullet.moveback()
+        else:
+            bullet.moveback()
     window.fill("#222034")
     player.render(window)
     bullet.render(window)
-    e1.render(window)
+    for i in enemies:
+        i.render(window)
+    if menuing:
+        menu_back.render(window)
     pygame.display.update()
     clock.tick(60)/1000
